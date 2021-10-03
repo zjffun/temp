@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "module": "commonjs",
+    "target": "es5",
+    "allowJs": false,
+    "noUnusedLocals": false,
+    "baseUrl": ".",
+    "paths": {
+      "@toolboxs/*": ["./toolboxs/*/src"]
+    }
+  }
+}

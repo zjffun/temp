@@ -1,0 +1,28 @@
+{
+  "name": "toolboxs",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "bootstrap": "lerna bootstrap",
+    "clean": "lerna clean",
+    "build": "rimraf -rf packages/*/{lib,esm} && lerna run build",
+    "version:alpha": "lerna version prerelease --preid alpha",
+    "version:beta": "lerna version prerelease --preid beta",
+    "version:rc": "lerna version prerelease --preid rc",
+    "version:patch": "lerna version patch",
+    "version:minor": "lerna version minor",
+    "version:preminor": "lerna version preminor --preid beta",
+    "version:major": "lerna version major",
+    "release:force": "lerna publish from-package --yes && ts-node scripts/release release",
+    "prelease:force": "lerna publish from-package --yes --dist-tag next && ts-node scripts/release release",
+    "release": "lerna publish",
+    "prelease": "lerna publish --dist-tag next",
+    "lint": "eslint --ext .ts,.tsx,.js  --fix"
+  },
+  "dependencies": {
+    "lerna": "^4.0.0",
+    "ts-node": "^10.2.1"
+  }
+}
