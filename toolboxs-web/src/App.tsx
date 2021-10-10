@@ -66,12 +66,6 @@ function App() {
           );
           break;
         case "convert":
-          console.log(
-            input,
-            convert[convertOption.from],
-            convert[convertOption.from].parse(input)
-          );
-debugger
           _setOutput(
             convert[convertOption.to].stringify(
               convert[convertOption.from].parse(input)
