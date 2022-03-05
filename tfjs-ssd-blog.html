@@ -1,0 +1,100 @@
+<!--【省略】HTML 和 CSS -->
+
+<!-- 引入 TensorFlow.js. -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+<script>
+  // 机器学习模型地址
+  const GOOGLE_CLOUD_STORAGE_DIR =
+    "https://storage.googleapis.com/tfjs-models/savedmodel/";
+  const MODEL_URL = GOOGLE_CLOUD_STORAGE_DIR + "ssd_mobilenet_v1/model.json";
+
+  // 加载模型
+  let modelPromise = tf.loadGraphModel(MODEL_URL);
+
+  const infer = async (model, img, maxNumBoxes, minScore) => {
+    const batched = tf.tidy(() => {
+      if (!(img instanceof tf.Tensor)) {
+        img = tf.browser.fromPixels(img);
+      }
+      // Reshape to a single-element batch so we can pass it to executeAsync.
+      return tf.expandDims(img);
+    });
+    const height = batched.shape[1];
+    const width = batched.shape[2];
+    // model returns two tensors:
+    // 1. box classification score with shape of [1, 1917, 90]
+    // 2. box location with shape of [1, 1917, 1, 4]
+    // where 1917 is the number of box detectors, 90 is the number of classes.
+    // and 4 is the four coordinates of the box.
+    const result = await model.executeAsync(batched);
+    const scores = result[0].dataSync();
+    const boxes = result[1].dataSync();
+    // clean the webgl tensors
+    batched.dispose();
+    tf.dispose(result);
+    const [maxScores, classes] = calculateMaxScores(
+      scores,
+      result[0].shape[1],
+      result[0].shape[2]
+    );
+    const prevBackend = tf.getBackend();
+    // run post process in cpu
+    if (tf.getBackend() === "webgl") {
+      tf.setBackend("cpu");
+    }
+    const indexTensor = tf.tidy(() => {
+      const boxes2 = tf.tensor2d(boxes, [
+        result[1].shape[1],
+        result[1].shape[3],
+      ]);
+      return tf.image.nonMaxSuppression(
+        boxes2,
+        maxScores,
+        maxNumBoxes,
+        minScore,
+        minScore
+      );
+    });
+    const indexes = indexTensor.dataSync();
+    indexTensor.dispose();
+    // restore previous backend
+    if (prevBackend !== tf.getBackend()) {
+      tf.setBackend(prevBackend);
+    }
+    return buildDetectedObjects(
+      width,
+      height,
+      boxes,
+      maxScores,
+      indexes,
+      classes
+    );
+  };
+
+  const run = async (image) => {
+    // 模型加载完毕后执行
+    const model = await modelPromise;
+    const result = await infer(model, image, 20, 0.5);
+
+    // 【省略】将结果绘制到 canvas
+  };
+
+  // 图片改变后运行模型
+  imageEl.addEventListener("input", function () {
+    if (this.files && this.files[0]) {
+      var fileReader = new FileReader();
+      fileReader.onload = function (e) {
+        var img = new Image();
+        img.onload = function () {
+          srcEl.width = img.width;
+          srcEl.height = img.height;
+          srcContext.drawImage(img, 0, 0);
+          run(img);
+        };
+        img.src = e.target.result;
+      };
+      fileReader.readAsDataURL(this.files[0]);
+    }
+  });
+</script>
